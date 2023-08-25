@@ -67,6 +67,10 @@ pub struct Config {
     pub minify_html: bool,
     /// Whether to build the search index for the content
     pub build_search_index: bool,
+    /// Whether to use ugly urls
+    pub ugly_url: bool,
+    /// Whether links to local markdown files will be treated as local links
+    pub local_markdown_link: bool,
     /// A list of file glob patterns to ignore when processing the content folder. Defaults to none.
     /// Had to remove the PartialEq derive because GlobSet does not implement it. No impact
     /// because it's unused anyway (who wants to sort Configs?).
@@ -107,6 +111,8 @@ pub struct SerializedConfig<'a> {
     taxonomies: &'a [taxonomies::TaxonomyConfig],
     author: &'a Option<String>,
     build_search_index: bool,
+    ugly_url: bool,
+    local_markdown_link: bool,
     extra: &'a HashMap<String, Toml>,
     markdown: &'a markup::Markdown,
 }
@@ -188,7 +194,7 @@ impl Config {
     /// Makes a url, taking into account that the base url might have a trailing slash
     pub fn make_permalink(&self, path: &str) -> String {
         let trailing_bit =
-            if path.ends_with('/') || path.ends_with(&self.feed_filename) || path.is_empty() {
+            if path.ends_with('/') || path.ends_with(&self.feed_filename) || path.is_empty() ||  path.ends_with(".html") {
                 ""
             } else {
                 "/"
@@ -328,6 +334,8 @@ impl Config {
             feed_filename: &options.feed_filename,
             taxonomies: &options.taxonomies,
             author: &self.author,
+            ugly_url: self.ugly_url,
+            local_markdown_link: self.local_markdown_link,
             build_search_index: options.build_search_index,
             extra: &self.extra,
             markdown: &self.markdown,
@@ -378,6 +386,8 @@ impl Default for Config {
             hard_link_static: false,
             taxonomies: Vec::new(),
             author: None,
+            ugly_url: false,
+            local_markdown_link: false,
             compile_sass: false,
             minify_html: false,
             mode: Mode::Build,

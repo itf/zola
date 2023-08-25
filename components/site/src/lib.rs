@@ -675,9 +675,19 @@ impl Site {
     pub fn render_page(&self, page: &Page) -> Result<()> {
         let output = page.render_html(&self.tera, &self.config, &self.library.read().unwrap())?;
         let content = self.inject_livereload(output);
-        let components: Vec<&str> = page.path.split('/').collect();
+        let mut components: Vec<&str> = page.path.split('/').collect::<Vec<_>>();
+        // If the page path ends in .html, we write to that file
+        // otherwise we write a /index.html in the directory specified by the path.
+        let page_name = match components.pop() {
+            Some(part) if part.ends_with(".html") => part,
+            Some(part) => {
+                components.push(part);
+                "index.html"
+            }
+            None => "index.html",
+        };
         let current_path =
-            self.write_content(&components, "index.html", content, !page.assets.is_empty())?;
+            self.write_content(&components, page_name, content, !page.assets.is_empty())?;
 
         // Copy any asset we found previously into the same directory as the index.html
         for asset in &page.assets {

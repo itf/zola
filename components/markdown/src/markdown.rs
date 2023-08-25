@@ -63,6 +63,16 @@ fn is_colocated_asset_link(link: &str) -> bool {
         && !STARTS_WITH_SCHEMA_RE.is_match(link)
 }
 
+/// Local links are links that are not external nor to an anchor
+fn is_local_link(link: &str) -> bool {
+    !link.starts_with('#') && !STARTS_WITH_SCHEMA_RE.is_match(link)
+}
+
+// Errors if it does not have a parent dir.
+fn get_parent_dir(link: &str) -> &str {
+    link.rsplit_once('/').unwrap_or(("", "")).0
+}
+
 #[derive(Debug)]
 pub struct Rendered {
     pub body: String,
@@ -149,8 +159,18 @@ fn fix_link(
     // - it could be a relative link (starting with `@/`)
     // - it could be a link to a co-located asset
     // - it could be a normal link
-    let result = if link.starts_with("@/") {
-        match resolve_internal_link(link, &context.permalinks) {
+    let result = if link.starts_with("@/") || (context.config.local_markdown_link && link.ends_with(".md") && is_local_link(link)) {
+        let at_link = &if link.starts_with("@/") {
+            link.to_owned()
+        } else {
+            let dir = get_parent_dir(context.current_page_path.unwrap());
+            if dir.is_empty() {
+                link.to_owned()
+            } else {
+                format!("@/{}/{}", dir, link)
+            }
+        };
+        match resolve_internal_link(at_link, &context.permalinks) {
             Ok(resolved) => {
                 internal_links.push((resolved.md_path, resolved.anchor));
                 resolved.permalink
@@ -171,7 +191,8 @@ fn fix_link(
             }
         }
     } else if is_colocated_asset_link(link) {
-        format!("{}{}", context.current_page_permalink, link)
+        let dir = get_parent_dir(context.current_page_permalink);
+        format!("{}/{}", dir, link)
     } else if is_external_link(link) {
         external_links.push(link.to_owned());
         link.to_owned()
@@ -388,7 +409,8 @@ pub fn markdown_to_html(
                 }
                 Event::Start(Tag::Image(link_type, src, title)) => {
                     if is_colocated_asset_link(&src) {
-                        let link = format!("{}{}", context.current_page_permalink, &*src);
+                        let dir = get_parent_dir(context.current_page_permalink);
+                        let link = format!("{}/{}", dir, &*src);
                         events.push(Event::Start(Tag::Image(link_type, link.into(), title)));
                     } else {
                         events.push(Event::Start(Tag::Image(link_type, src, title)));

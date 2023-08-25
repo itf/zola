@@ -172,9 +172,17 @@ impl Page {
 
             format!("/{}", path)
         };
-
-        if !page.path.ends_with('/') {
-            page.path = format!("{}/", page.path);
+        if !config.ugly_url {
+            if !page.path.ends_with('/') {
+                page.path = format!("{}/", page.path);
+            }
+        } else { //using ugly paths
+            if page.file.name == "index" && page.meta.path.is_none(){
+                page.path = format!("{}/", page.path);
+            }
+            else if !page.path.ends_with('/') {
+                page.path = format!("{}.html", page.path);
+            }
         }
 
         page.components = page
@@ -196,12 +204,12 @@ impl Page {
         let content = read_file(path)?;
         let mut page = Page::parse(path, &content, config, base_path)?;
 
-        if page.file.name == "index" {
+        if page.file.name == "index" || config.ugly_url {
             let parent_dir = path.parent().unwrap();
             page.assets = find_related_assets(parent_dir, config, true);
             page.serialized_assets = page.serialize_assets(base_path);
         } else {
-            page.assets = vec![];
+           page.assets = vec![];
         }
 
         Ok(page)
