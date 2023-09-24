@@ -11,6 +11,7 @@ mod taxonomies;
 mod types;
 mod utils;
 
+pub use utils::find_related_assets;
 pub use file_info::FileInfo;
 pub use front_matter::{PageFrontMatter, SectionFrontMatter};
 pub use library::Library;

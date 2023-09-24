@@ -92,16 +92,36 @@ impl Section {
         section.reading_time = Some(reading_time);
 
         let path = section.file.components.join("/");
-        let lang_path = if section.lang != config.default_language {
-            format!("/{}", section.lang)
+        let lang: String = if section.lang != config.default_language {
+            format!("{}", section.lang)
         } else {
             "".into()
         };
-        section.path = if path.is_empty() {
-            format!("{}/", lang_path)
-        } else {
-            format!("{}/{}/", lang_path, path)
-        };
+        if !config.lang_file_suffix {
+            let lang_path = if !lang.is_empty() {
+                format!("/{}", lang)
+            } else {
+                lang
+            };
+            section.path = if path.is_empty() {
+                format!("{}/", lang_path)
+            } else {
+                format!("{}/{}/", lang_path, path)
+            };
+        }
+        else {
+            section.path = if path.is_empty() {
+                // no folder if in ugly url mode to preserve file folder.
+                format!("/{}", lang) 
+            } else {
+                format!("{}/{}", path, lang)
+            };
+            if !config.ugly_url {
+                if !section.path.ends_with('/') {
+                    section.path = format!("{}/", section.path);
+                }
+            }
+        }
 
         section.components = section
             .path

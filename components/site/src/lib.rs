@@ -18,6 +18,7 @@ use libs::walkdir::{DirEntry, WalkDir};
 
 use config::{get_config, Config, IndexFormat};
 use content::{Library, Page, Paginator, Section, Taxonomy};
+use content::find_related_assets;
 use errors::{anyhow, bail, Result};
 use libs::relative_path::RelativePathBuf;
 use std::time::Instant;
@@ -734,7 +735,20 @@ impl Site {
             self.write_content(&components, page_name, content)?;
 
         // Copy any asset we found previously into the same directory as the index.html
-        self.copy_assets(page.file.path.parent().unwrap(), &page.assets, &current_path)?;
+        if !self.config.content_as_static {
+            for asset in &page.assets {
+                let asset_path = asset.as_path();
+                copy_file_if_needed(
+                    asset_path,
+                    &current_path.join(
+                        asset_path
+                            .strip_prefix(page.file.path.parent().unwrap())
+                            .expect("Couldn't get filename from page asset"),
+                    ),
+                    self.config.hard_link_static,
+                )?;
+            }
+        }
 
         Ok(())
     }
@@ -809,6 +823,22 @@ impl Site {
         }
         self.render_taxonomies()?;
         start = log_time(start, "Rendered taxonomies");
+        if self.config.content_as_static {
+            let assets = find_related_assets(&self.content_path, &self.config, true);
+            for asset in assets {
+                let asset_path = asset.as_path();
+                copy_file_if_needed(
+                    asset_path,
+                    &self.output_path.join(
+                        asset_path
+                            .strip_prefix(&self.content_path)
+                            .expect("Couldn't get filename from page asset"),
+                    ),
+                    self.config.hard_link_static,
+                )?;
+            }
+            start = log_time(start, "Copied content");
+        }
         // We process images at the end as we might have picked up images to process from markdown
         // or from templates
         self.process_images()?;
@@ -1133,7 +1163,21 @@ impl Site {
         }
 
         // Copy any asset we found previously into the same directory as the index.html
-        self.copy_assets(section.file.path.parent().unwrap(), &section.assets, &output_path)?;
+
+        if !self.config.content_as_static {
+            for asset in &section.assets {
+                let asset_path = asset.as_path();
+                copy_file_if_needed(
+                    asset_path,
+                    &output_path.join(
+                        asset_path
+                            .strip_prefix(section.file.path.parent().unwrap())
+                            .expect("Failed to get asset filename for section"),
+                    ),
+                    self.config.hard_link_static,
+                )?;
+            }
+        }
 
         if render_pages {
             section
