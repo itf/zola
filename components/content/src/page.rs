@@ -167,7 +167,12 @@ impl Page {
             };
 
             if page.lang != config.default_language {
-                path = format!("{}/{}", page.lang, path);
+                if !config.lang_file_suffix {
+                    path = format!("{}/{}", page.lang, path);
+                }
+                else {
+                    path = format!("{}-{}", path, page.lang);
+                }
             }
 
             format!("/{}", path)

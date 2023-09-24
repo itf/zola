@@ -69,6 +69,13 @@ pub struct Config {
     pub build_search_index: bool,
     /// Whether to use ugly urls
     pub ugly_url: bool,
+    /// Whether to copy the colocated files in the exact same structure, ignoring permalinks of files. 
+    /// Making them behave like static files
+    /// Should be used with lang_file_prefix
+    pub content_as_static: bool,
+    // Whether to use a directory prefix for langs, e.g. /en/post, or use a 
+    // file suffix, e.g. post-en Helps with not creating copies of colocated files.
+    pub lang_file_suffix: bool,
     /// Whether links to local markdown files will be treated as local links
     pub local_markdown_link: bool,
     /// A list of file glob patterns to ignore when processing the content folder. Defaults to none.
@@ -112,6 +119,8 @@ pub struct SerializedConfig<'a> {
     author: &'a Option<String>,
     build_search_index: bool,
     ugly_url: bool,
+    content_as_static: bool,
+    lang_file_suffix: bool, 
     local_markdown_link: bool,
     extra: &'a HashMap<String, Toml>,
     markdown: &'a markup::Markdown,
@@ -335,6 +344,8 @@ impl Config {
             taxonomies: &options.taxonomies,
             author: &self.author,
             ugly_url: self.ugly_url,
+            lang_file_suffix: self.lang_file_suffix,
+            content_as_static: self.content_as_static,
             local_markdown_link: self.local_markdown_link,
             build_search_index: options.build_search_index,
             extra: &self.extra,
@@ -387,6 +398,8 @@ impl Default for Config {
             taxonomies: Vec::new(),
             author: None,
             ugly_url: false,
+            content_as_static: false,
+            lang_file_suffix: false,
             local_markdown_link: false,
             compile_sass: false,
             minify_html: false,
