@@ -79,7 +79,7 @@ impl TeraFn for GetUrl {
             args.get("trailing_slash"),
             "`get_url`: `trailing_slash` must be a boolean (true or false)"
         )
-        .unwrap_or(false);
+        .unwrap_or(true);
         let lang = optional_arg!(String, args.get("lang"), "`get_url`: `lang` must be a string.")
             .unwrap_or_else(|| self.config.default_language.clone());
 
